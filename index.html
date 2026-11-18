@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>गौ धारा आयुर्वेदा</title>
+<style>
+  :root { --bg:#fffdf7; --text:#1f2a1f; --card:#f3efe2; --accent:#2e7d32; --muted:#667; --line:#ddd6bf; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121712; --text:#eef2ea; --card:#1d251d; --muted:#a9b3a5; --line:#2e3a2e; }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); padding-bottom:80px; }
+  header { padding:28px 16px 14px; text-align:center; }
+  header h1 { font-size:26px; color:var(--accent); }
+  header p { color:var(--muted); margin-top:6px; font-size:14px; }
+  .btn { display:inline-block; padding:10px 16px; border-radius:22px; border:0; font-weight:600;
+         font-size:15px; cursor:pointer; text-decoration:none; text-align:center; }
+  .green { background:var(--accent); color:#fff; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px; max-width:900px; margin:auto; }
+  @media (min-width:700px) { .grid { grid-template-columns:repeat(3,1fr); } }
+  .card { background:var(--card); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+  .img { aspect-ratio:1/1; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:40px; }
+  .img img { width:100%; height:100%; object-fit:cover; }
+  .info { padding:10px; display:flex; flex-direction:column; gap:6px; flex:1; }
+  .name { font-weight:600; font-size:15px; }
+  .desc { font-size:13px; color:var(--muted); }
+  .price { color:var(--accent); font-weight:700; }
+  .info .btn { margin-top:auto; font-size:14px; padding:9px; }
+  #bar { position:fixed; left:0; right:0; bottom:0; padding:12px 16px; background:var(--accent); color:#fff;
+         display:none; justify-content:space-between; align-items:center; font-weight:600; z-index:5;
+         padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px)); }
+  #bar button { background:#fff; color:var(--accent); }
+  #sheet { position:fixed; inset:0; background:var(--bg); z-index:10; overflow-y:auto; display:none; padding:16px;
+           padding-top:calc(16px + env(safe-area-inset-top, 0px)); }
+  #sheet h2 { margin-bottom:12px; }
+  .row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); gap:8px; }
+  .qty button { width:30px; height:30px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:16px; }
+  .qty span { display:inline-block; min-width:26px; text-align:center; }
+  .sum { padding:10px 0; font-size:15px; }
+  .sum div { display:flex; justify-content:space-between; padding:3px 0; }
+  .sum .tot { font-weight:700; font-size:17px; }
+  input, textarea { width:100%; padding:11px; margin:6px 0; border:1px solid var(--line); border-radius:10px;
+                    background:var(--card); color:var(--text); font-size:15px; font-family:inherit; }
+  label.pay { display:flex; gap:10px; align-items:center; padding:12px; border:1px solid var(--line); border-radius:10px; margin:6px 0; }
+  label.pay input { width:auto; margin:0; }
+  #upiBox { display:none; padding:10px; background:var(--card); border-radius:10px; margin:6px 0; font-size:14px; }
+  #upiBox .btn { margin-top:8px; display:block; }
+  .back { background:var(--card); color:var(--text); margin-bottom:10px; }
+  .wa { background:#25d366; color:#fff; width:100%; margin-top:14px; padding:14px; font-size:16px; }
+  footer { text-align:center; padding:20px; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>गौ धारा आयुर्वेदा</h1>
+  <p id="tagline"></p>
+  <a class="btn green" id="insta" target="_blank" rel="noopener" style="margin-top:12px">Instagram वर फॉलो करा</a>
+</header>
+
+<main class="grid" id="products"></main>
+<footer>© गौ धारा आयुर्वेदा</footer>
+
+<div id="bar">
+  <span id="barText"></span>
+  <button class="btn" onclick="openSheet()">कार्ट पहा</button>
+</div>
+
+<div id="sheet">
+  <button class="btn back" onclick="closeSheet()">← मागे</button>
+  <h2>तुमची ऑर्डर</h2>
+  <div id="cartList"></div>
+  <div class="sum" id="sum"></div>
+
+  <h2 style="margin-top:14px">डिलिव्हरी माहिती</h2>
+  <input id="cName" placeholder="तुमचे नाव">
+  <input id="cPhone" placeholder="मोबाईल नंबर" inputmode="numeric" maxlength="10">
+  <textarea id="cAddr" rows="3" placeholder="पूर्ण पत्ता (गाव/शहर, पिन कोड)"></textarea>
+
+  <h2 style="margin-top:14px">पेमेंट</h2>
+  <label class="pay"><input type="radio" name="pay" value="cod" checked onchange="renderSheet()"> कॅश ऑन डिलिव्हरी (COD)</label>
+  <label class="pay"><input type="radio" name="pay" value="upi" onchange="renderSheet()"> UPI (GPay / PhonePe / Paytm)</label>
+  <div id="upiBox">
+    आधी खालील बटणाने पेमेंट करा. नंतर "ऑर्डर पाठवा" दाबा आणि WhatsApp वर पेमेंट स्क्रीनशॉट पाठवा.
+    <a class="btn green" id="upiLink">UPI ने पैसे द्या</a>
+  </div>
+
+  <button class="btn wa" onclick="placeOrder()">WhatsApp वर ऑर्डर पाठवा</button>
+</div>
+
+<script>
+  /* ====== फक्त हे बदला ====== */
+  const TAGLINE   = "शुद्ध आयुर्वेदिक उत्पादने, घरपोच डिलिव्हरी";
+  const WHATSAPP  = "919999999999";        // 91 + तुमचा 10 अंकी नंबर
+  const UPI_ID    = "tumchaupi@oksbi";     // तुमचा UPI ID
+  const INSTAGRAM = "https://instagram.com/tumcha_username";
+  const DELIVERY  = 50;                    // डिलिव्हरी चार्ज (नसेल तर 0)
+
+  /* नवीन प्रोडक्ट जोडायचा? एक ओळ कॉपी करून खाली पेस्ट करा, id वेगळा ठेवा.
+     image: फोटोचे नाव (तोच फोटो GitHub मध्ये upload करा). फोटो नसेल तर "" ठेवा. */
+  const PRODUCTS = [
+    { id:1, name:"प्रोडक्ट 1", price:299, image:"", desc:"थोडक्यात माहिती" },
+    { id:2, name:"प्रोडक्ट 2", price:499, image:"", desc:"थोडक्यात माहिती" },
+    { id:3, name:"प्रोडक्ट 3", price:199, image:"", desc:"थोडक्यात माहिती" },
+    { id:4, name:"प्रोडक्ट 4", price:699, image:"", desc:"थोडक्यात माहिती" }
+  ];
+  /* ========================== */
+
+  const cart = {};
+  const $ = id => document.getElementById(id);
+  const total = () => PRODUCTS.reduce((s,p) => s + (cart[p.id]||0)*p.price, 0);
+  const count = () => Object.values(cart).reduce((a,b) => a+b, 0);
+  const payMode = () => document.querySelector('input[name=pay]:checked').value;
+
+  $("tagline").textContent = TAGLINE;
+  $("insta").href = INSTAGRAM;
+
+  PRODUCTS.forEach(p => {
+    const c = document.createElement("div"); c.className = "card";
+    const im = document.createElement("div"); im.className = "img";
+    if (p.image) { const i = document.createElement("img"); i.src = p.image; i.alt = p.name; i.loading = "lazy"; im.appendChild(i); }
+    else im.textContent = "🌿";
+    const info = document.createElement("div"); info.className = "info";
+    info.innerHTML = '<div class="name"></div><div class="desc"></div><div class="price"></div>';
+    info.children[0].textContent = p.name;
+    info.children[1].textContent = p.desc || "";
+    info.children[2].textContent = "₹" + p.price;
+    const b = document.createElement("button");
+    b.className = "btn green"; b.textContent = "कार्टमध्ये टाका";
+    b.onclick = () => change(p.id, 1);
+    info.appendChild(b);
+    c.append(im, info); $("products").appendChild(c);
+  });
+
+  function change(id, d) {
+    cart[id] = Math.max(0, (cart[id]||0) + d);
+    if (!cart[id]) delete cart[id];
+    refresh();
+  }
+  function refresh() {
+    const n = count();
+    $("bar").style.display = n ? "flex" : "none";
+    $("barText").textContent = n + " वस्तू • ₹" + total();
+    if ($("sheet").style.display === "block") { if (!n) closeSheet(); else renderSheet(); }
+  }
+  function openSheet() { $("sheet").style.display = "block"; renderSheet(); }
+  function closeSheet() { $("sheet").style.display = "none"; }
+
+  function renderSheet() {
+    $("cartList").innerHTML = "";
+    PRODUCTS.filter(p => cart[p.id]).forEach(p => {
+      const r = document.createElement("div"); r.className = "row";
+      r.innerHTML = '<div><div class="name"></div><div class="desc"></div></div><div class="qty"><button>−</button><span></span><button>+</button></div>';
+      r.querySelector(".name").textContent = p.name;
+      r.querySelector(".desc").textContent = "₹" + p.price + " × " + cart[p.id] + " = ₹" + (p.price*cart[p.id]);
+      const bs = r.querySelectorAll("button");
+      bs[0].onclick = () => change(p.id, -1);
+      bs[1].onclick = () => change(p.id, 1);
+      r.querySelector("span").textContent = cart[p.id];
+      $("cartList").appendChild(r);
+    });
+    const grand = total() + DELIVERY;
+    $("sum").innerHTML = '<div><span>वस्तूंची किंमत</span><span>₹' + total() + '</span></div>' +
+      '<div><span>डिलिव्हरी</span><span>₹' + DELIVERY + '</span></div>' +
+      '<div class="tot"><span>एकूण</span><span>₹' + grand + '</span></div>';
+    const upi = payMode() === "upi";
+    $("upiBox").style.display = upi ? "block" : "none";
+    $("upiLink").href = "upi://pay?pa=" + UPI_ID + "&pn=" + encodeURIComponent("गौ धारा आयुर्वेदा") +
+      "&am=" + grand + "&cu=INR&tn=" + encodeURIComponent("Order");
+  }
+
+  function placeOrder() {
+    const name = $("cName").value.trim(), phone = $("cPhone").value.trim(), addr = $("cAddr").value.trim();
+    if (!name || !/^[0-9]{10}$/.test(phone) || !addr) { alert("कृपया नाव, 10 अंकी मोबाईल नंबर आणि पत्ता भरा."); return; }
+    const lines = PRODUCTS.filter(p => cart[p.id]).map(p => "• " + p.name + " × " + cart[p.id] + " = ₹" + (p.price*cart[p.id]));
+    const grand = total() + DELIVERY;
+    const pay = payMode() === "cod" ? "कॅश ऑन डिलिव्हरी" : "UPI (पेमेंट केले, स्क्रीनशॉट पाठवत आहे)";
+    const msg = "नमस्कार, मला ऑर्डर करायची आहे:\n\n" + lines.join("\n") +
+      "\n\nडिलिव्हरी: ₹" + DELIVERY + "\nएकूण: ₹" + grand + "\nपेमेंट: " + pay +
+      "\n\nनाव: " + name + "\nमोबाईल: " + phone + "\nपत्ता: " + addr;
+    window.location.href = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(msg);
+  }
+</script>
+</body>
+</html>
